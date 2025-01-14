@@ -27,6 +27,7 @@ CMakeFiles/allocators.dir/src/allocators_linear.c.obj: C:/Users/ajarry/Dev/alloc
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/_mingw.h \
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/_mingw_mac.h \
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/_mingw_secapi.h \
+  C:/TDM-GCC-64/x86_64-w64-mingw32/include/assert.h \
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/corecrt.h \
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/crtdefs.h \
   C:/TDM-GCC-64/x86_64-w64-mingw32/include/sdks/_mingw_ddk.h \
@@ -78,6 +79,8 @@ C:/TDM-GCC-64/x86_64-w64-mingw32/include/vadefs.h:
 C:/Users/ajarry/Dev/allocators-c/src/allocators.h:
 
 C:/Users/ajarry/Dev/allocators-c/src/allocators_linear.c:
+
+C:/TDM-GCC-64/x86_64-w64-mingw32/include/assert.h:
 
 C:/TDM-GCC-64/x86_64-w64-mingw32/include/sec_api/string_s.h:
 
