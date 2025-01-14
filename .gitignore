@@ -1,4 +1,2 @@
 *.exe
-
-build/allocators.exe
-build/CMakeFiles/allocators.dir/
+build/*
