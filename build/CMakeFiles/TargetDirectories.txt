@@ -1,0 +1,3 @@
+C:/Users/ajarry/Dev/allocators-c/build/CMakeFiles/allocators.dir
+C:/Users/ajarry/Dev/allocators-c/build/CMakeFiles/edit_cache.dir
+C:/Users/ajarry/Dev/allocators-c/build/CMakeFiles/rebuild_cache.dir
