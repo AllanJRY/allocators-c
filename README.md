@@ -1,3 +1,9 @@
+## Description
+
+Based GingerBill blog posts on memory startegies (TODO: add link)
+
+## Build
+
 ```shell
 $ cd ./build
 ```

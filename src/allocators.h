@@ -20,8 +20,8 @@ void* allocator_linear_alloc(Allocator_Linear* allocator, size_t data_size);
 
 void allocator_linear_free(Allocator_Linear* allocator);
 
-void allocator_linear_resize_align(Allocator_Linear* allocator, void* old_buf, size_t old_size, size_t new_size, size_t align);
+void* allocator_linear_resize_align(Allocator_Linear* allocator, void* old_memory, size_t old_size, size_t new_size, size_t align);
 
-void allocator_linear_resize(Allocator_Linear* allocator, void* old_buf, size_t old_size, size_t new_size);
+void* allocator_linear_resize(Allocator_Linear* allocator, void* old_memory, size_t old_size, size_t new_size);
 
 #endif

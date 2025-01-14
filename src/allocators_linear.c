@@ -1,5 +1,7 @@
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
+
 #include "allocators.h"
 #include "utils.h"
 
@@ -30,17 +32,43 @@ void* allocator_linear_alloc_align(Allocator_Linear* allocator, size_t data_size
 }
 
 void* allocator_linear_alloc(Allocator_Linear* allocator, size_t data_size) {
-    // TODO
+    return allocator_linear_alloc_align(allocator, data_size, DEFAULT_ALIGNEMENT);
 }
 
 void allocator_linear_free(Allocator_Linear* allocator) {
-    // TODO
+    allocator->prev_offset = 0;
+    allocator->curr_offset = 0;
 }
 
-void allocator_linear_resize_align(Allocator_Linear* allocator, void* old_buf, size_t old_size, size_t new_size, size_t align) {
-    // TODO
+void* allocator_linear_resize_align(Allocator_Linear* allocator, void* old_memory, size_t old_size, size_t new_size, size_t align) {
+    uint8_t* old_mem = (uint8_t*) old_memory;
+
+    assert(is_power_of_two(align));
+
+    if (old_mem == NULL || old_size == 0) {
+        return allocator_linear_alloc_align(allocator, new_size, align);
+    } else if (allocator->buf <= old_mem && old_mem < allocator->buf + allocator->buf_len) {
+        if (allocator->buf + allocator->prev_offset == old_mem) {
+            allocator->curr_offset = allocator->prev_offset + new_size;
+            if (new_size > old_size) {
+                // Set to 0 the new memory by default.
+                memset(&allocator->buf[allocator->curr_offset], 0, new_size - old_size);
+            }
+
+            return old_memory;
+        } else {
+            void* new_memory = allocator_linear_alloc_align(allocator, new_size, align);
+            size_t copy_file = old_size < new_size ? old_size : new_size;
+            // Copy old memory to new memory.
+            memmove(new_memory, old_memory, old_size);
+            return new_memory;
+        }
+    }  else {
+        assert(0 && "Memory is out of bounds of the buffer in this arena");
+        return NULL;
+    }
 }
 
-void allocator_linear_resize(Allocator_Linear* allocator, void* old_buf, size_t old_size, size_t new_size) {
-    // TODO
+void* allocator_linear_resize(Allocator_Linear* allocator, void* old_memory, size_t old_size, size_t new_size) {
+    return allocator_linear_resize_align(allocator, old_memory, old_size, new_size, DEFAULT_ALIGNEMENT);
 }
