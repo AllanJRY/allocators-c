@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "allocators.h"
-#include "utils.h"
 
 void allocator_linear_init(Allocator_Linear* allocator, void* backing_buf, size_t backing_buf_len) {
     allocator->buf         = (uint8_t*) backing_buf;

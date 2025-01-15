@@ -1,6 +1,8 @@
 #ifndef ALLOCATORS_H
 #define ALLOCATORS_H
 
+#include "utils.h"
+
 /**
  * A linear allocator, also known as an arena or region-based allocator, manages memory allocations
  * sequentially within a single continuous block of memory. Deallocation is performed in one step 

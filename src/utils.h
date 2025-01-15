@@ -45,9 +45,7 @@
   is only used with pointer address inside this project, so 0 should never be passed as argument as 0 is 
   not a valid pointer address, so we save us a check.
 */
-bool is_power_of_two(uintptr_t ptr) {
-    return (ptr & (ptr -1)) == 0;
-}
+bool is_power_of_two(uintptr_t ptr);
 
 /*
   Get the next pointer address which follow the desired memory alignement.
@@ -69,20 +67,6 @@ bool is_power_of_two(uintptr_t ptr) {
   ptr + (align - modulo) = 0xDB9FF364 + (0x00000010 - 0x00000004) = 0xDB9FF364 + 0x0000000C = 0xDB9FF370 -> this is the next valid address 16 bytes aligned.
 
 */
-uintptr_t align_forward(uintptr_t ptr, size_t align) {
-  assert(is_power_of_two(align));
-
-  uintptr_t p      = ptr;
-  uintptr_t a      = (uintptr_t) align;
-  uintptr_t modulo = p & (a - 1); // Fast modulo as 'a' is a power of 2.
-
-  if (modulo != 0) {
-    // If 'p' address is not aligned, push the address to the
-    // next value which is aligned
-    p += a - modulo;
-  }
-
-  return p;
-}
+uintptr_t align_forward(uintptr_t ptr, size_t align);
 
 #endif

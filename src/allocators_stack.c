@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "allocators.h"
-#include "utils.h"
 
 void allocator_stack_init(Allocator_Stack* allocator, void* backing_buf, size_t backing_buf_len) {
     allocator->buf = (uint8_t*) backing_buf;
@@ -52,7 +51,7 @@ void* allocator_stack_alloc_align(Allocator_Stack* allocator, size_t data_size, 
 		align = 128;
 	}
 
-    curr_addr = allocator->buf + allocator->curr_offset;
+    curr_addr = (uintptr_t) (allocator->buf + allocator->curr_offset);
     padding = calc_padding_with_header(curr_addr, (uintptr_t) align, sizeof(Allocator_Stack_Header));
     if (allocator->curr_offset + padding + data_size > allocator->buf_len) {
         // Adding the data at the next aligned address based on the offset, will exceed the buffer length.
