@@ -54,20 +54,52 @@ void* allocator_stack_alloc_align(Allocator_Stack* allocator, size_t data_size, 
     curr_addr = allocator->buf + allocator->offset;
     padding = calc_padding_with_header(curr_addr, (uintptr_t) align, sizeof(Allocator_Stack_Header));
     if (allocator->offset + padding + data_size > allocator->buf_len) {
+        // Adding the data at the next aligned address based on the offset, will exceed the buffer length.
         return NULL;
     }
+
+    // offset is updated to be align and "pointing" to the next aligned address of the buffer.
     allocator->offset += padding;
 
+    // same as `allocator->buf + allocator->offset`, because `allocator->offset` as been aligned previously.
     next_addr = curr_addr + (uintptr_t) padding;
+
+    // Get a pointer backward, this way the header is stored in the padding.
     header = (Allocator_Stack_Header*) (next_addr - sizeof(Allocator_Stack_Header));
     header->padding = (uint8_t) padding;
 
     allocator->offset += data_size;
     
     return memset((void*) next_addr, 0, data_size);
-
 }
 
 void* allocator_stack_alloc(Allocator_Stack* allocator, size_t data_size) {
     return allocator_stack_alloc_align(allocator, data_size, DEFAULT_ALIGNEMENT);
+}
+
+void allocator_stack_free(Allocator_Stack* allocator, void* ptr) {
+    if (ptr != NULL) {
+        uintptr_t start, end, curr_addr;
+        Allocator_Stack_Header* header;
+        size_t prev_offset;
+
+        start     = (uintptr_t) allocator->buf;
+        end       = start + (uintptr_t) allocator->buf_len;
+        curr_addr = (uintptr_t) ptr;
+
+        if (!(start <= curr_addr && curr_addr < end)) {
+			assert(0 && "Out of bounds memory address passed to stack allocator (free)");
+			return;
+        }
+
+		if (curr_addr >= start + (uintptr_t)allocator->offset) {
+			// Allow double frees
+			return;
+		}
+
+        header = (Allocator_Stack_Header*) (curr_addr - sizeof(Allocator_Stack_Header));
+        prev_offset = (size_t) (curr_addr - (uintptr_t) header->padding - start);
+
+        allocator->offset = prev_offset;
+    }
 }

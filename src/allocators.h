@@ -233,4 +233,6 @@ void* allocator_stack_alloc_align(Allocator_Stack* allocator, size_t data_size, 
 
 void* allocator_stack_alloc(Allocator_Stack* allocator, size_t data_size);
 
+void allocator_stack_free(Allocator_Stack* allocator, void* ptr);
+
 #endif
