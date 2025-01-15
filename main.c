@@ -10,6 +10,9 @@ int main(void) {
 
     Allocator_Linear allocator;
     allocator_linear_init(&allocator, back_buf, BACK_BUF_LEN);
+    allocator_linear_alloc(&allocator, 32); // Will not cause padding
+    allocator_linear_alloc(&allocator, 36); // Will cause padding
+    allocator_linear_alloc(&allocator, 24); // Will cause padding
     allocator_linear_free(&allocator);
 
     return 0;
