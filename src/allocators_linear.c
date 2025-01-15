@@ -46,24 +46,31 @@ void* allocator_linear_resize_align(Allocator_Linear* allocator, void* old_memor
     assert(is_power_of_two(align));
 
     if (old_mem == NULL || old_size == 0) {
+        // Allocation of a new block inside the buffer.
         return allocator_linear_alloc_align(allocator, new_size, align);
     } else if (allocator->buf <= old_mem && old_mem < allocator->buf + allocator->buf_len) {
         if (allocator->buf + allocator->prev_offset == old_mem) {
+            // If the allocation to resize is the last one, the resize is done in place.
             allocator->curr_offset = allocator->prev_offset + new_size;
             if (new_size > old_size) {
-                // Set to 0 the new memory by default.
+                // Is the memory block grow, the new bytes are set to 0 by default.
                 memset(&allocator->buf[allocator->curr_offset], 0, new_size - old_size);
             }
 
             return old_memory;
         } else {
+            // If the allocation to resize is not the last one, the memory pointed by the old_memory is copied in a new
+            // block allocated at the end of the buffer grown of shrinked depending on the new size.
             void* new_memory = allocator_linear_alloc_align(allocator, new_size, align);
-            size_t copy_file = old_size < new_size ? old_size : new_size;
-            // Copy old memory to new memory.
+            size_t copy_size = old_size < new_size ? old_size : new_size;
             memmove(new_memory, old_memory, old_size);
             return new_memory;
         }
     }  else {
+        // This assertion ensures that memory is not accessed outside the bounds of the allocator's buffer.
+        // If the assertion fails, it indicates an out-of-bounds access, which is a critical error in the allocator's usage.
+        // The `&& "Memory is out of bounds of the buffer in this arena"` part is a trick to display a descriptive error message 
+        // when the assertion fails, helping with debugging the invalid memory access.
         assert(0 && "Memory is out of bounds of the buffer in this arena");
         return NULL;
     }
