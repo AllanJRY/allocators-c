@@ -119,12 +119,25 @@ void allocator_stack_free_all(Allocator_Stack* allocator) {
 void* allocator_stack_resize_align(Allocator_Stack* allocator, void* ptr, size_t old_data_size, size_t new_data_size, size_t align) {
     if (ptr == NULL) {
         return allocator_stack_alloc_align(allocator, new_data_size, align);
+    } else if (ptr == allocator->buf + allocator->prev_offset) {
+        // If the allocation to resize is the last one, the resize is done in place.
+
+        if (old_data_size == new_data_size) {
+            return ptr;
+        }
+
+        // If the allocation to resize is the last one, the resize is done in place.
+        allocator->curr_offset = allocator->prev_offset + new_data_size;
+        if (new_data_size > old_data_size) {
+            // Is the memory block grow, the new bytes are set to 0 by default.
+            memset(&allocator->buf[allocator->curr_offset], 0, new_data_size - old_data_size);
+        }
+
+        return ptr;
     } else if (new_data_size == 0) {
         allocator_stack_free(allocator, ptr);
         return NULL;
     } else {
-        // TODO: manage when ptr is previous alloc (prev_offset)
-
         uintptr_t start     = (uintptr_t) allocator->buf;
         uintptr_t end       = (uintptr_t) allocator->buf_len;
         uintptr_t curr_addr = (uintptr_t) ptr;
@@ -144,7 +157,6 @@ void* allocator_stack_resize_align(Allocator_Stack* allocator, void* ptr, size_t
         if (old_data_size == new_data_size) {
             return ptr;
         }
-
 
         new_ptr = allocator_stack_alloc_align(allocator, new_data_size, align);
         memmove(new_ptr, ptr, min_size);
