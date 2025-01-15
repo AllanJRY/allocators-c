@@ -217,14 +217,18 @@ void* allocator_linear_resize_align(Allocator_Linear* allocator, void* old_memor
  */
 void* allocator_linear_resize(Allocator_Linear* allocator, void* old_memory, size_t old_size, size_t new_size);
 
+// TODO: Allocator_Linear_Temp
+
 typedef struct Allocator_Stack_Header {
-    uint8_t padding; // Padding of the previous allocation (in bytes), added before the header to have the new allocation aligned correctly.
+    size_t prev_offset; // Offset to the previous allocation
+    size_t padding;     // Padding of the previous allocation (in bytes), added before the header to have the new allocation aligned correctly.
 } Allocator_Stack_Header;
 
 typedef struct Allocator_Stack {
-    uint8_t* buf;     // Pointer to the backing buffer
-    size_t   buf_len; // Total length of the backing buffer, in bytes
-    size_t   offset;  // Offset to the previous allocation
+    uint8_t* buf;         // Pointer to the backing buffer
+    size_t   buf_len;     // Total length of the backing buffer, in bytes
+    size_t   prev_offset; // Offset to the previous allocation
+    size_t   curr_offset; // Offset to the next available allocation address
 } Allocator_Stack;
 
 void allocator_stack_init(Allocator_Stack* allocator, void* backing_buf, size_t backing_buf_len);
@@ -234,5 +238,11 @@ void* allocator_stack_alloc_align(Allocator_Stack* allocator, size_t data_size, 
 void* allocator_stack_alloc(Allocator_Stack* allocator, size_t data_size);
 
 void allocator_stack_free(Allocator_Stack* allocator, void* ptr);
+
+void allocator_stack_free_all(Allocator_Stack* allocator);
+
+void* allocator_stack_resize_align(Allocator_Stack* allocator, void* ptr, size_t old_data_size, size_t new_data_size, size_t align);
+
+void* allocator_stack_resize(Allocator_Stack* allocator, void* ptr, size_t old_data_size, size_t new_data_size);
 
 #endif
