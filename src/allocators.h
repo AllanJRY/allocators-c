@@ -659,4 +659,21 @@ void* allocator_stack_resize_align(Allocator_Stack* allocator, void* ptr, size_t
  */
 void* allocator_stack_resize(Allocator_Stack* allocator, void* ptr, size_t old_data_size, size_t new_data_size);
 
+typedef struct Allocator_Pool_Free_Node Allocator_Pool_Free_Node;
+struct Allocator_Pool_Free_Node {
+    Allocator_Pool_Free_Node *next;
+};
+
+typedef struct Allocator_Pool {
+    uint8_t* buf;
+    size_t   buf_len;
+    size_t   chunk_size;
+
+    Allocator_Pool_Free_Node* free_list_head; // the free list, behaves like LinkedList.
+} Allocator_Pool;
+
+void allocator_pool_init(Allocator_Pool* allocator, void* backing_buf, size_t backing_buf_len, size_t chunk_size, size_t size_chunk_align);
+
+void allocator_pool_free_all(Allocator_Pool* allocator);
+
 #endif
