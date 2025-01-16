@@ -4,13 +4,45 @@
 
 #include "allocators.h"
 
-void allocator_stack_init(Allocator_Stack* allocator, void* backing_buf, size_t backing_buf_len) {
-    allocator->buf = (uint8_t*) backing_buf;
-    allocator->buf_len = backing_buf_len;
-    allocator->prev_offset = 0;
-    allocator->curr_offset = 0;
-}
-
+/**
+ * Calculates the padding needed to align a pointer, including space for a header.
+ *
+ * This function computes the number of bytes (padding) required to align a memory pointer 
+ * (`ptr`) to a specified alignment (`align`) while ensuring that there is enough space 
+ * immediately after the padding to accommodate a header of a given size (`header_size`).
+ *
+ * @param ptr          The pointer address to align, represented as an `uintptr_t`.
+ * @param align        The desired alignment, which must be a power of two.
+ * @param header_size  The size of the header, in bytes, that needs to fit before the aligned address.
+ * 
+ * @return The number of padding bytes required to satisfy the alignment and header space constraints.
+ *
+ * ### Behavior:
+ * - If `ptr` is already aligned, the padding ensures there is enough space for the header.
+ * - If `ptr` is not aligned, the padding ensures both alignment and header space requirements.
+ * - The function asserts that `align` is a power of two, as required for alignment calculations.
+ *
+ * ### Implementation Details:
+ * - The alignment is calculated using the bitwise AND operation (`align - 1`) to determine 
+ *   the misalignment (`modulo`) of the current pointer.
+ * - If there isn't enough space for the header after basic alignment, additional padding is added 
+ *   to ensure the header fits.
+ * - The formula accounts for the alignment constraints by rounding up the remaining `needed_space` 
+ *   to the next multiple of `align`.
+ *
+ * ### Example:
+ * Suppose a memory address `ptr = 1000`, alignment `align = 8`, and `header_size = 16`:
+ * - Without alignment, the next aligned address is 1008.
+ * - If there's insufficient space for the header after 1008, additional padding is added.
+ * - The returned padding ensures the address is both aligned and can accommodate the header.
+ *
+ * ### Assertions:
+ * - The function assumes that `align` is a power of two, as verified by the `is_power_of_two(align)` assertion.
+ *
+ * ### Notes:
+ * - The `uintptr_t` type ensures portability, as it is capable of holding any pointer value.
+ * - The function is static, indicating it is intended for use only within the defining source file.
+ */
 static size_t calc_padding_with_header(uintptr_t ptr, uintptr_t align, size_t header_size) {
     assert(is_power_of_two(align));
 
@@ -36,6 +68,13 @@ static size_t calc_padding_with_header(uintptr_t ptr, uintptr_t align, size_t he
     }
 
     return (size_t) padding;
+}
+
+void allocator_stack_init(Allocator_Stack* allocator, void* backing_buf, size_t backing_buf_len) {
+    allocator->buf = (uint8_t*) backing_buf;
+    allocator->buf_len = backing_buf_len;
+    allocator->prev_offset = 0;
+    allocator->curr_offset = 0;
 }
 
 void* allocator_stack_alloc_align(Allocator_Stack* allocator, size_t data_size, size_t align) {
