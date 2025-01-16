@@ -27,6 +27,39 @@ void allocator_pool_init(Allocator_Pool* allocator, void* backing_buf, size_t ba
 	allocator_pool_free_all(allocator);
 }
 
+void* allocator_pool_alloc(Allocator_Pool* allocator) {
+	Allocator_Pool_Free_Node* free_node = allocator->free_list_head;
+	
+	if(free_node == NULL) {
+		assert(0 && "Pool allocator has no free memory");
+		return NULL;
+	}
+
+	allocator->free_list_head = allocator->free_list_head->next;
+
+	return memset(free_node, 0, allocator->chunk_size);
+}
+
+void allocator_pool_free(Allocator_Pool* allocator, void* ptr) {
+	if (ptr == NULL) {
+		return;
+	}
+
+	Allocator_Pool_Free_Node* free_node;
+
+	void* start = allocator->buf;
+	void* end = &allocator->buf[allocator->buf_len];
+
+	if (ptr < start || ptr > end) {
+		assert(0 && "Memory is out of bounds of the buffer in this pool");
+		return;
+	}
+
+	free_node = (Allocator_Pool_Free_Node*) ptr;
+	free_node->next = allocator->free_list_head;
+	allocator->free_list_head = free_node;
+}
+
 void allocator_pool_free_all(Allocator_Pool* allocator) {
     size_t chunk_count = allocator->buf_len / allocator->chunk_size;
 

@@ -659,11 +659,66 @@ void* allocator_stack_resize_align(Allocator_Stack* allocator, void* ptr, size_t
  */
 void* allocator_stack_resize(Allocator_Stack* allocator, void* ptr, size_t old_data_size, size_t new_data_size);
 
+/**
+ * @struct Allocator_Pool_Free_Node
+ * Represents a node in the free list of a pool allocator.
+ * 
+ * Each node corresponds to a free chunk of memory in the pool allocator.
+ * These nodes form a linked list, where each node points to the next free chunk.
+ *
+ * @member next Pointer to the next free chunk in the pool.
+ */
 typedef struct Allocator_Pool_Free_Node Allocator_Pool_Free_Node;
 struct Allocator_Pool_Free_Node {
-    Allocator_Pool_Free_Node *next;
+    Allocator_Pool_Free_Node *next; // Pointer to the next free chuck in the allocator.
 };
 
+/**
+ * @struct Allocator_Pool
+ * A pool-based memory allocator (sometimes called block allocator) that manages fixed-size chunks of memory.
+ *
+ * The pool allocator divides a supplied backing buffer into equal-sized chunks
+ * and maintains a free list to keep track of available chunks. Allocations are
+ * performed by removing a chunk from the free list, and deallocations are
+ * performed by adding a chunk back to the free list.
+ *
+ * ### Key Features:
+ * - **Constant Time Operations (O(1))**:
+ *   Allocations and deallocations are highly efficient, as they simply
+ *   involve updating pointers in the free list.
+ * - **Minimized Fragmentation**:
+ *   Since all chunks are of equal size, there is no internal fragmentation.
+ * - **Batch Allocation**:
+ *   Useful for allocating and deallocating groups of objects that share
+ *   the same size and often the same lifetime.
+ *
+ * ### Use Cases:
+ * - Managing dynamic objects of uniform size, such as game entities or network packets.
+ * - Scenarios where high allocation and deallocation performance is critical.
+ * 
+ * @member buf             Pointer to the backing buffer used for the pool.
+ * @member buf_len         Total size of the backing buffer, in bytes.
+ * @member chunk_size      Size of each chunk in the pool, in bytes.
+ * @member free_list_head  Pointer to the head of the free list, which tracks
+ *                         available chunks in the pool.
+ *
+ * ### Example:
+ * ```c
+ * uint8_t buffer[1024];
+ * Allocator_Pool pool;
+ * allocator_pool_init(&pool, buffer, sizeof(buffer), 64);
+ *
+ * void* chunk1 = allocator_pool_alloc(&pool);
+ * void* chunk2 = allocator_pool_alloc(&pool);
+ *
+ * allocator_pool_free(&pool, chunk1);
+ * allocator_pool_free(&pool, chunk2);
+ * ```
+ *
+ * ### Notes:
+ * - The chunk size must be greater than or equal to the size of `Allocator_Pool_Free_Node`.
+ * - The pool allocator is ideal for fixed-size allocations but is not suitable for variable-sized allocations.
+ */
 typedef struct Allocator_Pool {
     uint8_t* buf;
     size_t   buf_len;
@@ -672,8 +727,169 @@ typedef struct Allocator_Pool {
     Allocator_Pool_Free_Node* free_list_head; // the free list, behaves like LinkedList.
 } Allocator_Pool;
 
+/**
+ * @brief Initializes a pool allocator with the given backing buffer, chunk size, and alignment.
+ * 
+ * The function sets up a pool allocator that divides the backing buffer into fixed-size chunks 
+ * aligned to the specified alignment. The allocator maintains a free list to track available 
+ * chunks and prepares the pool for allocations.
+ * 
+ * ### Parameters:
+ * - **allocator**: A pointer to the `Allocator_Pool` structure to initialize.
+ * - **backing_buf**: A pointer to the memory block to be used as the backing buffer.
+ * - **backing_buf_len**: The total size of the backing buffer in bytes.
+ * - **chunk_size**: The size of each chunk in bytes. This is aligned to the specified alignment.
+ * - **chunk_align**: The alignment for each chunk. Must be a power of two.
+ * 
+ * ### Behavior:
+ * 1. The backing buffer is aligned to the specified chunk alignment, and any excess bytes at the 
+ *    start are excluded from use.
+ * 2. The chunk size is aligned to the specified alignment to ensure proper spacing and alignment 
+ *    of chunks within the buffer.
+ * 3. Assertions verify that the chunk size is at least as large as the size of a free list node 
+ *    (`Allocator_Pool_Free_Node`) and that the backing buffer is large enough to hold at least 
+ *    one chunk.
+ * 4. The free list is initialized to include all chunks within the adjusted backing buffer.
+ * 
+ * ### Example:
+ * ```c
+ * uint8_t buffer[1024];
+ * Allocator_Pool pool;
+ * allocator_pool_init(&pool, buffer, sizeof(buffer), 64, 16);
+ *
+ * void* chunk1 = allocator_pool_alloc(&pool);
+ * void* chunk2 = allocator_pool_alloc(&pool);
+ *
+ * allocator_pool_free(&pool, chunk1);
+ * allocator_pool_free(&pool, chunk2);
+ * ```
+ * 
+ * ### Notes:
+ * - The alignment must be a power of two to ensure correct behavior.
+ * - The `chunk_size` must be greater than or equal to the size of `Allocator_Pool_Free_Node`, 
+ *   as the free list nodes are stored within chunks.
+ * - The `allocator_pool_free_all` function is called at the end of initialization to reset 
+ *   and populate the free list.
+ * 
+ * ### Assertions:
+ * - Ensures `chunk_size` is large enough to store a free list node.
+ * - Ensures the backing buffer is large enough to hold at least one aligned chunk.
+ */
 void allocator_pool_init(Allocator_Pool* allocator, void* backing_buf, size_t backing_buf_len, size_t chunk_size, size_t size_chunk_align);
 
+/**
+ * @brief Allocates a chunk of memory from the pool allocator.
+ * 
+ * This function provides memory by returning a pointer to a free chunk in the pool. It removes 
+ * the chunk from the free list and returns a zero-initialized pointer to the chunk.
+ * If there are no available chunks in the pool, the function triggers an assertion and returns `NULL`.
+ * 
+ * ### Parameters:
+ * - **allocator**: A pointer to the `Allocator_Pool` structure from which to allocate memory.
+ * 
+ * ### Return:
+ * - **void***: A pointer to the allocated chunk of memory, or `NULL` if no free chunks are available.
+ * 
+ * ### Behavior:
+ * 1. The function checks the `free_list_head` to see if there are any free chunks available.
+ * 2. If no chunks are available (i.e., the free list is empty), it triggers an assertion to indicate 
+ *    that the pool is out of memory.
+ * 3. If a free chunk is available, the `free_list_head` is updated to point to the next chunk in the 
+ *    free list, and the allocated chunk is zero-initialized using `memset`.
+ * 
+ * ### Example:
+ * ```c
+ * Allocator_Pool pool;
+ * allocator_pool_init(&pool, buffer, 1024, 64, 16);
+ * 
+ * void* chunk = allocator_pool_alloc(&pool);
+ * if (chunk != NULL) {
+ *     // Use the allocated chunk...
+ * }
+ * ```
+ * 
+ * ### Notes:
+ * - The function assumes that the pool has been properly initialized using `allocator_pool_init`.
+ * - The chunk returned is zero-initialized, ensuring that all allocated memory starts with a clean state.
+ * - If the pool runs out of free chunks, the function will assert with an error message.
+ * 
+ * ### Assertions:
+ * - Ensures that there is at least one free chunk in the pool before allocation.
+ * 
+ * ### Complexity:
+ * - **Time Complexity**: O(1), constant time allocation, as chunks are allocated from the free list.
+ * - **Space Complexity**: O(1), no additional space is used for allocation other than the chunk.
+ */
+void* allocator_pool_alloc(Allocator_Pool* allocator);
+
+/**
+ * @brief Frees a previously allocated chunk of memory from the pool allocator.
+ * 
+ * This function takes a pointer to a previously allocated chunk and adds it back to the pool's 
+ * free list, making it available for future allocations. It performs bounds checking to ensure the 
+ * pointer belongs to the allocator's buffer. If the pointer is `NULL`, no action is taken.
+ * 
+ * ### Parameters:
+ * - **allocator**: A pointer to the `Allocator_Pool` structure where the chunk should be freed.
+ * - **ptr**: A pointer to the chunk that needs to be freed. The pointer must be within the bounds of 
+ *           the allocator's buffer.
+ * 
+ * ### Behavior:
+ * 1. If the pointer is `NULL`, the function simply returns without doing anything.
+ * 2. The function checks that the pointer lies within the bounds of the allocator's buffer.
+ * 3. If the pointer is valid, the function creates a free node from the given chunk and adds it to the 
+ *    free list (linked list) of free chunks.
+ * 4. The chunk is then available for reallocation.
+ * 
+ * ### Example:
+ * ```c
+ * void* chunk = allocator_pool_alloc(&pool);
+ * allocator_pool_free(&pool, chunk); // Free the chunk once done with it
+ * ```
+ * 
+ * ### Assertions:
+ * - Ensures that the pointer passed to the function is within the bounds of the pool's allocated memory.
+ * 
+ * ### Notes:
+ * - The function does not perform any memory deallocation or zeroing of the chunk. It merely adds it 
+ *   back to the free list.
+ * - If the pointer is not valid (i.e., not within the pool's memory range), an assertion is triggered.
+ * 
+ * ### Complexity:
+ * - **Time Complexity**: O(1), constant time operation as chunks are simply added to the free list.
+ * - **Space Complexity**: O(1), no additional space is required aside from the pointer manipulation.
+ */
+void allocator_pool_free(Allocator_Pool* allocator, void* ptr);
+
+/**
+ * @brief Frees all chunks in the pool allocator.
+ * 
+ * This function marks all the chunks in the pool as free by adding each chunk to the free list, 
+ * making all chunks available for future allocations. It effectively resets the pool, allowing 
+ * for reuse of the entire buffer.
+ * 
+ * ### Parameters:
+ * - **allocator**: A pointer to the `Allocator_Pool` structure to free all chunks in.
+ * 
+ * ### Behavior:
+ * 1. The function calculates the number of chunks based on the pool's buffer length and chunk size.
+ * 2. It iterates over all chunks in the pool and adds them to the free list.
+ * 3. After calling this function, all chunks are available for reallocation.
+ * 
+ * ### Example:
+ * ```c
+ * allocator_pool_free_all(&pool); // Free all chunks in the pool
+ * ```
+ * 
+ * ### Notes:
+ * - This function does not deallocate any memory; it only marks all chunks as available.
+ * - The function operates on the entire pool, effectively resetting its state.
+ * 
+ * ### Complexity:
+ * - **Time Complexity**: O(n), where `n` is the number of chunks in the pool. The function iterates over 
+ *   all chunks to add them to the free list.
+ * - **Space Complexity**: O(1), no additional space is used, aside from iterating over the chunks.
+ */
 void allocator_pool_free_all(Allocator_Pool* allocator);
 
 #endif
