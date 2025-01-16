@@ -60,7 +60,7 @@ static size_t calc_padding_with_header(uintptr_t ptr, uintptr_t align, size_t he
     if (padding < needed_space) {
         needed_space -= padding;
 
-        if(needed_space & (align - 1) != 0) {
+        if((needed_space & (align - 1)) != 0) {
             padding += align * (1 + (needed_space / align));
         } else {
             padding += align * (needed_space / align);

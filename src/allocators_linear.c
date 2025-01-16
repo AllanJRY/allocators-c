@@ -14,7 +14,7 @@ void allocator_linear_init(Allocator_Linear* allocator, void* backing_buf, size_
 void* allocator_linear_alloc_align(Allocator_Linear* allocator, size_t data_size, size_t data_align) {
     // Align 'curr_offset' forward to the specified alignment
     uintptr_t curr_ptr = (uintptr_t) allocator->buf + (uintptr_t) allocator->curr_offset;
-    uintptr_t offset = align_forward(curr_ptr, data_align);
+    uintptr_t offset = align_forward_uintptr(curr_ptr, (uintptr_t) data_align);
     offset -= (uintptr_t) allocator->buf; // Change to relative offset
 
     // Check to see if the backing memory has space left

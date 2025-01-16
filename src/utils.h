@@ -67,6 +67,28 @@ bool is_power_of_two(uintptr_t ptr);
   ptr + (align - modulo) = 0xDB9FF364 + (0x00000010 - 0x00000004) = 0xDB9FF364 + 0x0000000C = 0xDB9FF370 -> this is the next valid address 16 bytes aligned.
 
 */
-uintptr_t align_forward(uintptr_t ptr, size_t align);
+uintptr_t align_forward_uintptr(uintptr_t ptr, uintptr_t align);
+
+/*
+  Get the next pointer address which follow the desired memory alignement.
+
+  Modern computer architectures will always read memory at its “word size” (4 bytes on a 32 bit machine, 8 bytes on a 64 bit machine).
+  If you have an unaligned memory access (on a processor that allows for that), the processor will have to read multiple “words”.
+  This means that an unaligned memory access may be much slower than an aligned memory access. 
+
+  to read more about memory alignment, here are some good resources: 
+  - https://igoro.com/archive/gallery-of-processor-cache-effects/
+  - https://www.rcollins.org/articles/pmbasics/tspec_a1_doc.html
+
+  Now, here is how this procedure works:
+  given a pointer and an alignment, we calculate the modulo from the 2. For example, with and alignment of 16 (0x00000010) bytes: 
+  ptr % align = 0x7B5FF270 % 0x00000010 = 00000000 -> The ptr is correct 16 bytes aligned.
+
+  ptr % align = 0xDB9FF364 % 0x00000010 = 00000004 -> The ptr is not 16 bytes aligned
+  Here the ptr cannot be used directly, a padding/offset has to be added to get the next valid address 16 bytes aligned :
+  ptr + (align - modulo) = 0xDB9FF364 + (0x00000010 - 0x00000004) = 0xDB9FF364 + 0x0000000C = 0xDB9FF370 -> this is the next valid address 16 bytes aligned.
+
+*/
+size_t align_forward_size(size_t ptr, size_t align);
 
 #endif
